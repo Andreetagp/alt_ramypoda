@@ -466,9 +466,28 @@ class TSP_Cota4(TSP):
     no visitado (más el último visitado). 
     Es fácil calcularla de manera incremental.
     '''
+    def initial_solution(self):
+        initial = [ self.first_vertex ]
+        initial_score = sum([self.G.lowest_out_weight(other_vertex) for other_vertex in self.G.nodes()])
+        return (initial_score, initial)
 
-    pass
-    # COMPLETAR
+    def branch(self, s_score, s):
+        '''
+        s_score es el score de s
+        s es una solución parcial
+        '''
+        # Forma incremental
+        last_vertex = s[-1]
+        for edge_dest, edge_weight in self.G.edges_from(last_vertex):
+            if edge_dest not in s:
+                yield (s_score + edge_weight - self.G.lowest_out_weight(last_vertex), s+[edge_dest])
+
+        # Forma no incremental
+        # last_vertex = s[-1]
+        # for edge_dest, edge_weight in self.G.edges_from(last_vertex):
+        #     if edge_dest not in s:
+        #         yield (self.G.path_weight(s) + edge_weight + sum([self.G.lowest_out_weight(other_vertex) for other_vertex in list(filter(lambda x: x not in s, self.G.nodes()))]), s+[edge_dest])
+            
 
 class TSP_Cota5(TSP):
     '''
@@ -477,9 +496,20 @@ class TSP_Cota5(TSP):
     y llegan a vértices no visitados o al vértice origen.
     No es incremental.
     '''
-    
-    pass
-    # COMPLETAR
+    def initial_solution(self):
+        initial = [ self.first_vertex ]
+        initial_score = sum([self.G.lowest_out_weight(unvisited_vertex, forbidden=[]) for unvisited_vertex in self.G.nodes()-[self.first_vertex]])
+        return (initial_score, initial)
+
+    def branch(self, s_score, s):
+        '''
+        s_score es el score de s
+        s es una solución parcial
+        '''
+        last_vertex = s[-1]
+        for edge_dest, edge_weight in self.G.edges_from(last_vertex):
+            if edge_dest not in s:
+                yield (self.G.path_weight(s) + edge_weight + sum([self.G.lowest_out_weight(unvisited_vertex, forbidden=s[1:]+[edge_dest]) for unvisited_vertex in list(self.G.nodes()-s)]), s+[edge_dest])
     
 
 class TSP_Cota6(TSP):
@@ -492,9 +522,21 @@ class TSP_Cota6(TSP):
     calcular en una sola pasada los caminos desde cada
     vértice al inicial.
     '''
-    
-    pass
-    # COMPLETAR
+    def initial_solution(self):
+        initial = [ self.first_vertex ]
+        initial_score = 0
+        return (initial_score, initial)
+
+    def branch(self, s_score, s):
+        '''
+        s_score es el score de s
+        s es una solución parcial
+        '''
+        # Forma incremental
+        last_vertex = s[-1]
+        for edge_dest, edge_weight in self.G.edges_from(last_vertex):
+            if edge_dest not in s:
+                yield (s_score + edge_weight - self.G.Dijkstra1dst(last_vertex, self.first_vertex) + self.G.Dijkstra1dst(edge_dest, self.first_vertex), s+[edge_dest])
 
 class TSP_Cota7(TSP):
     '''
@@ -504,9 +546,20 @@ class TSP_Cota7(TSP):
     el primero y el último de la solución parcial).
     No admite sol. incremental.
     '''
-    
-    pass
-    # COMPLETAR
+    def initial_solution(self):
+        initial = [ self.first_vertex ]
+        initial_score = 0
+        return (initial_score, initial)
+
+    def branch(self, s_score, s):
+        '''
+        s_score es el score de s
+        s es una solución parcial
+        '''
+        last_vertex = s[-1]
+        for edge_dest, edge_weight in self.G.edges_from(last_vertex):
+            if edge_dest not in s:
+                yield (self.G.path_weight(s) + edge_weight + self.G.Dijkstra1dst(edge_dest, self.first_vertex, avoid=s[1:]+[edge_dest]), s+[edge_dest])
 
 
 ######################################################################
@@ -547,15 +600,15 @@ class TSP_Cota7E(TSP_Cota7, BranchBoundExplicit):
 
 # ir descomentando a medida que se implementen las cotas
 repertorio_cotas = [('Cota1I',TSP_Cota1I),
-                    # ('Cota1E',TSP_Cota1E),
-                    # ('Cota4I',TSP_Cota4I),
-                    # ('Cota4E',TSP_Cota4E),
-                    # ('Cota5I',TSP_Cota5I),
-                    # ('Cota5E',TSP_Cota5E),
-                    # ('Cota6I',TSP_Cota6I),
-                    # ('Cota6E',TSP_Cota6E),
-                    # ('Cota7I',TSP_Cota7I),
-                    # ('Cota7E',TSP_Cota7E)
+                    ('Cota1E',TSP_Cota1E),
+                    ('Cota4I',TSP_Cota4I),
+                    ('Cota4E',TSP_Cota4E),
+                    ('Cota5I',TSP_Cota5I),
+                    ('Cota5E',TSP_Cota5E),
+                    ('Cota6I',TSP_Cota6I),
+                    ('Cota6E',TSP_Cota6E),
+                    ('Cota7I',TSP_Cota7I),
+                    ('Cota7E',TSP_Cota7E)
                     ]
 
 ######################################################################
@@ -659,6 +712,62 @@ def prueba_mini():
         fx,x,stats = tspi.solve()
         print(fx,x,stats)
 
+# COMENTAR
+ejemplo_mediano = """
+FORMAT 10 43
+e 0 4 84637
+e 0 3 113623
+e 0 6 115689
+e 0 8 28989
+e 0 1 92751
+e 1 3 39631
+e 1 7 44708
+e 1 6 26841
+e 2 3 69204
+e 2 5 92466
+e 2 4 80275
+e 3 0 102668
+e 3 9 852
+e 3 6 17788
+e 3 1 40001
+e 3 4 22637
+e 3 5 34081
+e 4 1 11291
+e 4 5 30120
+e 4 2 63483
+e 5 6 16878
+e 5 1 29329
+e 5 7 68026
+e 5 4 26577
+e 5 0 92391
+e 5 2 92195
+e 6 4 12293
+e 6 7 59774
+e 6 5 16209
+e 7 3 79204
+e 7 2 126610
+e 7 9 76392
+e 7 8 91416
+e 7 1 57764
+e 7 0 71665
+e 8 2 95620
+e 8 9 132896
+e 8 3 110810
+e 8 1 95677
+e 8 4 94689
+e 9 4 26070
+e 9 2 78506
+e 9 1 40074
+"""
+        
+def prueba_mediana():
+    g = load_dimacs_graph(ejemplo_mediano)
+    for nombre,clase in repertorio_cotas:
+        print(f'----- checking {nombre} -----')
+        tspi = clase(g)
+        fx,x,stats = tspi.solve()
+        print(fx,x,stats)
+
 ######################################################################
 #
 #                            MAIN
@@ -666,7 +775,8 @@ def prueba_mini():
 ######################################################################
             
 if __name__ == '__main__':
-    prueba_mini()
+    #prueba_mini()
+    prueba_mediana()
     # prueba_generador()
     # experimento()
 
