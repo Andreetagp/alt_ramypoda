@@ -1,3 +1,9 @@
+######################################################################
+# Práctica realizada por:
+# - Andrea Gascó Pau
+# - Iñaki Diez Lambies
+######################################################################
+
 import numpy as np
 import heapq
 import collections
@@ -29,31 +35,41 @@ def naive_solution(costMatrix):
 def voraz_x_pieza(costMatrix):
     # costMatrix[i,j] el coste de situar pieza i en instante j
     M = costMatrix.shape[0] # nº piezas
-
-    # COMPLETAR
-    
-    return score,solution
+    solution=[]; score=0
+    for piece in range(M):
+        avaliableSortedPieces = list(filter(lambda index: index not in solution, np.argsort(costMatrix[piece])))
+        solution.append(avaliableSortedPieces[0])
+    return compute_score(costMatrix,solution),solution
 
 def voraz_x_instante(costMatrix):
     # costMatrix[i,j] el coste de situar pieza i en instante j
     M = costMatrix.shape[0] # nº piezas
-
-    # COMPLETAR
-    
-    return score,solution
+    solution=[-1]*M; score=0
+    for pieceOrder in range(costMatrix.shape[1]):
+        solutionIndexes = [-1 if solution[i] == -1 else i for i in range(len(solution))]
+        avaliableSortedPieces = list(filter(lambda index: index not in solutionIndexes, np.argsort(costMatrix[:, pieceOrder])))
+        solution[avaliableSortedPieces[0]] = pieceOrder
+    return compute_score(costMatrix,solution),solution
 
 def voraz_x_coste(costMatrix):
     # costMatrix[i,j] el coste de situar pieza i en instante j
     M = costMatrix.shape[0] # nº piezas
-
-    # COMPLETAR
-   
-    return score,solution
+    solution=[-1]*M; score=0
+    avaliableSortedIndexes=costMatrix.flatten().argsort()
+    for piece in range(M):
+        selectedIndex = avaliableSortedIndexes[0]
+        pieceIndex = int(selectedIndex / M); intantIndex = int(selectedIndex % M)
+        solution[pieceIndex] = intantIndex
+        avaliableSortedIndexes = list(filter(lambda i: int(i % M) != intantIndex and int(i / M) != pieceIndex, avaliableSortedIndexes))
+    return compute_score(costMatrix,solution),solution
 
 def voraz_combina(costMatrix):
-    
-    # COMPLETAR
-    
+    score, solution = float('inf'), []
+    vorazFunctions = [naive_solution, voraz_x_pieza, voraz_x_instante, voraz_x_coste]
+    for f in vorazFunctions:
+        fRes = f(costMatrix)
+        if fRes[0] < score:
+            score, solution = fRes
     return score,solution
         
 ######################################################################
@@ -202,7 +218,55 @@ def probar_ryp():
     fx, x, stats = bb.solve()
     print(x,fx,compute_score(ejemplo,x))
     print(stats)
-    
+
+def comparar_sol_inicial():
+    stats_t = ['iterations',
+                'gen_states',
+                'podas_opt',
+                'maxA']
+    tallas = range(5,15+1)
+    # Lista de diccionarios. Uno por cada algoritmo a probar
+    statsList = [] 
+    numInstancias = 10
+    for index, talla in enumerate(tallas):
+        statsList.append({})
+        for instancia in range(numInstancias):
+            cM = genera_instancia(talla)
+            for label,function in cjtAlgoritmos.items():
+                score,solution = function(cM)
+                if (label != 'RyP'):
+                    bb = Ensamblaje(cM, solution)
+                else:
+                    bb = Ensamblaje(cM)
+                fx, x, stats = bb.solve()
+                actualStats = statsList[index].get(label, [])  
+                actualStats.append(stats)
+                statsList[index][label] = actualStats
+        for label,function in cjtAlgoritmos.items():
+            allStats = statsList[index][label]
+            avgStats = {}
+            for s in stats_t:
+                avgStats[s] = sum(d[s] for d in allStats) / len(allStats)
+            statsList[index][label] = avgStats
+        
+
+    for s in stats_t:
+        print(s.center(20,' ').center(100, '-'))
+        print('talla',end=' ')
+        for label in cjtAlgoritmos:
+            if (label != 'RyP'):
+                label += '+RyP'
+            print(f'{label:>10}',end=' ')
+        print()
+        for index, talla in enumerate(tallas):
+            print(f'{talla:>5}',end=' ')
+            for label,function in cjtAlgoritmos.items():
+                print(f'{statsList[index][label][s]:10.2f}', end=' ')
+            print()
+                
+
+            
+
 ######################################################################
 #
 #                             PRUEBAS
@@ -215,4 +279,6 @@ if __name__ == '__main__':
     probar_ryp()
     print('-'*70)
     comparar_algoritmos()
+    print('-'*70)
+    comparar_sol_inicial()
 
