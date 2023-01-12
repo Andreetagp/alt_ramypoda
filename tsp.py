@@ -509,7 +509,8 @@ class TSP_Cota5(TSP):
         last_vertex = s[-1]
         for edge_dest, edge_weight in self.G.edges_from(last_vertex):
             if edge_dest not in s:
-                yield (self.G.path_weight(s) + edge_weight + sum([self.G.lowest_out_weight(unvisited_vertex, forbidden=s[1:]+[edge_dest]) for unvisited_vertex in list(self.G.nodes()-s)]), s+[edge_dest])
+                yield (self.G.path_weight(s) + edge_weight + sum([self.G.lowest_out_weight(unvisited_vertex, forbidden=s[1:]+[edge_dest])\
+                    for unvisited_vertex in list(self.G.nodes()-s)]), s+[edge_dest])
     
 
 class TSP_Cota6(TSP):
@@ -670,11 +671,42 @@ def experimento():
     - Mostrar valores medios de todas las instancias de cada talla.
     - Sacar los datos de manera que sea fácil realizar una interpretacion
     '''
-
-    # COMPLETAR
-    pass
-
-
+    stats_keys = ['time', 'iterations', 'gen_states', 'podas_opt', 'maxA' ] 
+    print(f'Initializing experiment...\n')
+    all_sizes = range(10, 20+1)
+    all_stats = {}
+    num_instances = 10
+    for nV in range(10,1+max(tallaMax.values())):
+        print(f'  Checking graph size {nV}  '.center(50, '#'))
+        size_dict = all_stats.get(nV, {})
+        for instance in range(num_instances):
+            print(f'\tInstance num {instance}')
+            g = generate_random_digraph_1scc(nV) # porque fuertemente conexo
+            for nombre,clase in repertorio_cotas:
+                print(f'\t\tChecking {nombre}')
+                cota_list = size_dict.get(nombre, [])
+                tspi = clase(g)
+                fx,x,stats = tspi.solve()
+                cota_list.append(stats)
+                size_dict[nombre] = cota_list
+        for nombre,clase in repertorio_cotas:
+            cota_list = size_dict.get(nombre, [])
+            mean_dict = {}
+            for key in cota_list[0].keys():
+                mean_dict[key] = sum(d[key] for d in cota_list) / len(cota_list)
+            size_dict[nombre] = mean_dict
+        all_stats[nV]=size_dict
+    for key in stats_keys:
+        print(key.center(20,' ').center(100, '-'))
+        print('talla',end=' ')
+        for nombre,clase in repertorio_cotas:
+            print(f'{nombre:>10}',end=' ')
+        print()
+        for talla in range(10,1+max(tallaMax.values())):
+            print(f'{talla:>5}', end=' ')
+            for nombre,clase in repertorio_cotas:
+                print(f'{all_stats[talla][nombre][key]:10.2f}', end=' ')
+            print()
 
 ######################################################################
 #
@@ -776,7 +808,7 @@ def prueba_mediana():
             
 if __name__ == '__main__':
     #prueba_mini()
-    prueba_mediana()
+    #prueba_mediana()
     # prueba_generador()
-    # experimento()
+    experimento()
 
